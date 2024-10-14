@@ -15,13 +15,17 @@ type User struct {
 }
 
 type Room struct {
-	ID   string `gorm:"primaryKey"`
-	Name string `gorm:"unique"`
+	ID        string `gorm:"primaryKey"`
+	Name      string `gorm:"unique"`
+	CreatedBy string
+	UserID    []User `gorm:"many2many:user_rooms"`
 }
 
 type Chat struct {
-	ID      int64
-	From    string
-	To      string
-	Message string
+	ID        int64
+	From      User
+	To        User
+	Message   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

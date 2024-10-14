@@ -2,6 +2,7 @@ package ws
 
 import (
 	"fmt"
+
 	"github.com/GabrielMoody/chat-app/server/internal/dto"
 	"github.com/GabrielMoody/chat-app/server/internal/mysql"
 	"github.com/gofiber/contrib/websocket"
@@ -30,6 +31,8 @@ type Handler struct {
 func (h *Handler) CreateRoom(c *fiber.Ctx) error {
 	var r dto.RoomReq
 
+	user := c.Cookies("X-Username")
+
 	if err := c.BodyParser(&r); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -37,8 +40,9 @@ func (h *Handler) CreateRoom(c *fiber.Ctx) error {
 	}
 
 	data := mysql.Room{
-		ID:   uuid.NewString(),
-		Name: r.Name,
+		ID:        uuid.NewString(),
+		Name:      r.Name,
+		CreatedBy: user,
 	}
 
 	if err := h.db.Create(&data).Error; err != nil {
@@ -55,6 +59,22 @@ func (h *Handler) CreateRoom(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"room": data,
+	})
+}
+
+func (h *Handler) GetJoinedRoom(c *fiber.Ctx) error {
+	id := c.Params("userid")
+
+	var user mysql.User
+
+	if err := h.db.WithContext(c.Context()).Preload("rooms").First(&user, "id = ? ", id).Error; err != nil {
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"rooms": user.RoomID,
 	})
 }
 
@@ -79,7 +99,7 @@ func (h *Handler) FindRoom(c *fiber.Ctx) error {
 	})
 }
 
-func (h *Handler) JoinRoom() func(*websocket.Conn) {
+func (h *Handler) JoinRoom(ctx *fiber.Ctx) func(*websocket.Conn) {
 	return func(c *websocket.Conn) {
 		roomID := c.Params("roomID")
 		username := c.Cookies("X-Username")

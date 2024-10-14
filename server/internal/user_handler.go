@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"time"
+
 	"github.com/GabrielMoody/chat-app/server/internal/dto"
 	helper2 "github.com/GabrielMoody/chat-app/server/internal/helper"
 	"github.com/GabrielMoody/chat-app/server/internal/mysql"
@@ -9,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"time"
 )
 
 type UserHandler struct {
@@ -106,7 +107,6 @@ func (u *UserHandler) LoginUser(c *fiber.Ctx) error {
 	c.Cookie(cookie)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"data":  data,
 		"token": t,
 	})
 }

@@ -10,7 +10,7 @@ export const actions = {
       "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        name: form.get('username'),
+        name: form.get('name'),
         email: form.get('email'),
         password: form.get('password'),
         password_confirm: form.get('password_confirmation')
