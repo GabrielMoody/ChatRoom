@@ -24,6 +24,7 @@ func ChatRoutes(r fiber.Router, db *gorm.DB) {
 
 	api.Post("/register", userHandler.CreateUser)
 	api.Post("/login", userHandler.LoginUser)
+	api.Get("/user", middleware.JWTMiddleware(), userHandler.GetUserData)
 	api.Get("/rooms", middleware.JWTMiddleware(), chatHandler.FindRoom)
 	api.Post("/rooms", middleware.JWTMiddleware(), chatHandler.CreateRoom)
 

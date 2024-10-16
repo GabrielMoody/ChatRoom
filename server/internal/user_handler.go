@@ -111,6 +111,25 @@ func (u *UserHandler) LoginUser(c *fiber.Ctx) error {
 	})
 }
 
+func (u *UserHandler) GetUserData(c *fiber.Ctx) error {
+	jwtUser := c.Locals("user").(*jwt.Token)
+	claims := jwtUser.Claims.(jwt.MapClaims)
+	id := claims["ID"].(string)
+
+	ctx := c.Context()
+	var user mysql.User
+
+	if err := u.db.WithContext(ctx).First(&user).Where("id = ?", id).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data": user,
+	})
+}
+
 func NewUserHandler(db *gorm.DB) *UserHandler {
 	return &UserHandler{
 		db: db,

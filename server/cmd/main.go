@@ -14,7 +14,7 @@ func main() {
 
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:8000, http://localhost:63342",
+		AllowOrigins:     "http://localhost:8000, http://localhost:8080",
 		AllowCredentials: true,
 	}))
 
