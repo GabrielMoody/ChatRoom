@@ -7,6 +7,7 @@ import (
 	"github.com/GabrielMoody/chat-app/server/internal/mysql"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -31,7 +32,10 @@ type Handler struct {
 func (h *Handler) CreateRoom(c *fiber.Ctx) error {
 	var r dto.RoomReq
 
-	user := c.Cookies("X-Username")
+	jwtUser := c.Locals("user").(*jwt.Token)
+	claims := jwtUser.Claims.(jwt.MapClaims)
+	username := claims["user"].(string)
+	id := claims["ID"].(string)
 
 	if err := c.BodyParser(&r); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -39,26 +43,37 @@ func (h *Handler) CreateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	data := mysql.Room{
+	room := mysql.Room{
 		ID:        uuid.NewString(),
 		Name:      r.Name,
-		CreatedBy: user,
+		CreatedBy: username,
 	}
 
-	if err := h.db.Create(&data).Error; err != nil {
+	user := mysql.User{
+		ID:     id,
+		RoomID: []mysql.Room{room},
+	}
+
+	if err := h.db.Create(&room).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	h.hub.Rooms[data.ID] = &Room{
-		RoomID: data.ID,
-		Name:   data.Name,
+	if err := h.db.Updates(user).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	h.hub.Rooms[room.ID] = &Room{
+		RoomID: room.ID,
+		Name:   room.Name,
 		Client: make(map[string]*Client),
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"room": data,
+		"rooms": room,
 	})
 }
 
@@ -79,23 +94,18 @@ func (h *Handler) GetJoinedRoom(c *fiber.Ctx) error {
 }
 
 func (h *Handler) FindRoom(c *fiber.Ctx) error {
-	var r dto.RoomReq
-	var data mysql.Room
+	var data []mysql.Room
 
-	if err := c.BodyParser(&r); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+	room := c.Query("room")
 
-	if err := h.db.Find(&data, "name LIKE ?", fmt.Sprintf("%%%s%%", r.Name)).Error; err != nil {
+	if err := h.db.Find(&data, "name LIKE ?", fmt.Sprintf("%%%s%%", room)).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"room": data,
+		"rooms": data,
 	})
 }
 

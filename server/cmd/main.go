@@ -15,6 +15,7 @@ func main() {
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:8000, http://localhost:8080",
+		AllowMethods:     "GET, POST, DELETE, PUT, PATCH",
 		AllowCredentials: true,
 	}))
 
@@ -22,6 +23,13 @@ func main() {
 	api := app.Group("/api/v1")
 
 	internal.ChatRoutes(api, db)
+
+	app.Options("*", func(c *fiber.Ctx) error {
+		c.Set("Access-Control-Allow-Origin", "*")
+		c.Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
+		c.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		return c.SendStatus(fiber.StatusNoContent)
+	})
 
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
